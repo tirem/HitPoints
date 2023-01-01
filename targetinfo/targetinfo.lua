@@ -21,6 +21,9 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 * SOFTWARE.
 ]]--
+---------------------------------------------------------------------------
+-- Credit to Atom0s, Thorny, and Heals for being a huge help on Discord! --
+---------------------------------------------------------------------------
 
 addon.name      = 'targetinfo';
 addon.author    = 'Tirem';
