@@ -26,7 +26,7 @@ addon.name      = 'targetinfo';
 addon.author    = 'Tirem';
 addon.version   = '1.0';
 addon.desc      = 'Displays information bars about the target.';
-addon.link      = 'https://ashitaxi.com/';
+addon.link      = 'https://github.com/tirem/targetinfo'
 
 require('common');
 local imgui = require('imgui');
@@ -62,12 +62,11 @@ settings.register('settings', 'settings_update', update_settings);
 
 local function draw_rect(top_left, bot_right, color, radius)
     local color = imgui.GetColorU32(color);
-    local rectangle = {
+    local dimensions = {
         { top_left[1], top_left[2] },
         { bot_right[1], bot_right[2] }
     };
-
-    imgui.GetWindowDrawList():AddRectFilled(abs_rect[1], abs_rect[2], color, radius, ImDrawCornerFlags_All);
+    imgui.GetWindowDrawList():AddRectFilled(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All);
 end
 
 local function GetColorOfTarget(targetEntity, targetIndex)
