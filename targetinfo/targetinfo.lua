@@ -41,7 +41,9 @@ T{
 	barWidth = 600,
 	barHeight = 20,
 	totBarHeight = 16,
+	totBarOffset = 1,
 	textScale = 1.2,
+	showBarPercent = true;
 }
 local config = settings.load(default_settings);
 
@@ -186,7 +188,11 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetColumnWidth() - x - imgui.GetStyle().FramePadding.x);
         imgui.Text(dist);
 
-        imgui.ProgressBar(targetEntity.HPPercent / 100, { -1, config.barHeight });
+		if (config.showBarPercent == true) then
+			imgui.ProgressBar(targetEntity.HPPercent / 100, { -1, config.barHeight});
+		else
+			imgui.ProgressBar(targetEntity.HPPercent / 100, { -1, config.barHeight}, '');
+		end
 		
     end
 	local winPosX, winPosY = imgui.GetWindowPos();
@@ -211,7 +217,7 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 	end;
 	
 	local totColor = GetColorOfTarget(totEntity, totIndex);
-	imgui.SetNextWindowPos({winPosX + config.barWidth, winPosY + 1});
+	imgui.SetNextWindowPos({winPosX + config.barWidth, winPosY + config.totBarOffset});
     imgui.SetNextWindowSize({ config.barWidth / 3, -1, }, ImGuiCond_Always);
 	
 	if (imgui.Begin('TargetOfTargetInfo', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
@@ -228,4 +234,19 @@ ashita.events.register('d3d_present', 'present_cb', function ()
         imgui.ProgressBar(totEntity.HPPercent / 100, { -1, config.totBarHeight }, '');
     end
     imgui.End();
+end);
+
+ashita.events.register('command', 'command_cb', function (ee)
+    -- Parse the command arguments
+    local args = ee.command:args();
+    if (#args == 0 or args[1] ~= '/targetinfo') then
+        return;
+    end
+
+    -- Block all targetinfo related commands
+    ee.blocked = true;
+
+	-- redirect to config file for the time being
+    print('TargetInfo: Please check the config file for available options such as barLength, barHeight, etc.');
+    return;
 end);
