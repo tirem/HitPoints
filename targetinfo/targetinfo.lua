@@ -215,6 +215,10 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 	if (totEntity == nil) then
 		return;
 	end;
+	local targetNameText = totEntity.Name;
+	if (targetNameText == nil) then
+		return;
+	end;
 	
 	local totColor = GetColorOfTarget(totEntity, totIndex);
 	imgui.SetNextWindowPos({winPosX + config.barWidth, winPosY + config.totBarOffset});
@@ -223,15 +227,15 @@ ashita.events.register('d3d_present', 'present_cb', function ()
 	if (imgui.Begin('TargetOfTargetInfo', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
         -- Obtain and prepare target information.
 		imgui.SetWindowFontScale(config.textScale);
-		local targetNameText = totEntity.Name;
+		
 		local w, _  = imgui.CalcTextSize(targetNameText);
 
 		local totwinX, totwinY = imgui.GetWindowPos();
 		draw_rect({totwinX + cornerOffset, totwinY + cornerOffset}, {totwinX + w + nameXOffset, totwinY + nameYOffset}, {0,0,0,bgAlpha}, bgRadius);
 
-        -- Display the targets information..
-        imgui.TextColored(totColor, targetNameText);
-        imgui.ProgressBar(totEntity.HPPercent / 100, { -1, config.totBarHeight }, '');
+		-- Display the targets information..
+		imgui.TextColored(totColor, targetNameText);
+		imgui.ProgressBar(totEntity.HPPercent / 100, { -1, config.totBarHeight }, '');
     end
     imgui.End();
 end);
