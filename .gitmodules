@@ -1,0 +1,3 @@
+[submodule "HitPoints/libs/status"]
+	path = HitPoints/libs/status
+	url = https://github.com/tirem/statuslib

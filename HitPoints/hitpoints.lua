@@ -32,225 +32,279 @@ addon.desc      = 'Displays information bars about the target.';
 addon.link      = 'https://github.com/tirem/targetinfo'
 
 require('common');
-local imgui = require('imgui');
-local settings = require('settings');
+imgui = require('imgui');
+settings = require('settings');
+helpers = require('helpers');
+engaged = require('engaged');
+target = require('target');
+debuffs = require('debuffs');
 
+local user_settings = 
+T{
+	patchNotesVer = -1,
+
+	noBookendRounding = 4,
+	lockPositions = false,
+
+	showTargetBar = true,
+	showEnemyList = true,
+
+	statusIconTheme = 'XIView';
+
+	maxEnemyListEntries = 8,
+
+	targetBarScaleX = 1,
+	targetBarScaleY = 1,
+	targetBarFontOffset = 0,
+	targetBarIconScale = 1,
+	showTargetBarBookends = true,
+	showEnemyId = false;
+	alwaysShowHealthPercent = false,
+
+	enemyListScaleX = 1,
+	enemyListScaleY = 1,
+	enemyListFontScale = 1,
+	enemyListIconScale = 1,
+	showEnemyListBookends = true,
+
+	healthBarFlashEnabled = true,
+};
+
+local user_settings_container = 
+T{
+	userSettings = user_settings;
+};
 
 local default_settings =
 T{
-	barWidth = 600,
-	barHeight = 20,
-	totBarHeight = 16,
-	totBarOffset = 1,
-	textScale = 1.2,
-	showBarPercent = true;
-}
-local config = settings.load(default_settings);
+	-- settings for the targetbar
+	targetBarSettings =
+	T{
+		-- Damage interpolation
+		hitInterpolationDecayPercentPerSecond = 150,
+		hitDelayDuration = 0.5,
+		hitFlashDuration = 0.4,
 
--- TODO: Calculate these instead of manually setting them
-local cornerOffset = 5;
-local nameXOffset = 12;
-local nameYOffset = 26;
+		-- Everything else
+		barWidth = 500,
+		barHeight = 18,
+		totBarHeight = 14,
+		totBarOffset = -1,
+		textScale = 1.2,
+		cornerOffset = 5,
+		nameXOffset = 12,
+		nameYOffset = 9,
+		iconSize = 22,
+		arrowSize = 30,
+		maxIconColumns = 12,
+		topTextYOffset = 0,
+		topTextXOffset = 5,
+		bottomTextYOffset = -3,
+		bottomTextXOffset = 15,
+		name_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 13,
+			color = 0xFFFFFFFF,
+			bold = true,
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = false;
+		};
+		totName_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 12,
+			color = 0xFFFFFFFF,
+			bold = true,
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = false;
+		};
+		distance_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 11,
+			color = 0xFFFFFFFF,
+			bold = true,
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+		percent_font_settings = 
+		T{
+			visible = true,
+			locked = true,
+			font_family = 'Consolas',
+			font_height = 11,
+			color = 0xFFFFFFFF,
+			bold = true,
+			italic = true;
+			color_outline = 0xFF000000,
+			draw_flags = 0x10,
+			background = 
+			T{
+				visible = false,
+			},
+			right_justified = true;
+		};
+	};
 
-local bgAlpha = 0.4;
-local bgRadius = 6;
+	-- settings for enemy list
+	enemyListSettings = 
+	T{
+		barWidth = 125;
+		barHeight = 10;
+		textScale = 1;
+		entrySpacing = 1;
+		bgPadding = 7;
+		bgTopPadding = -3;
+		maxIcons = 5;
+		iconSize = 18;
+		debuffOffsetX = -10;
+		debuffOffsetY = 0;
+	};
+};
 
-local function update_settings(s)
-    if (s ~= nil) then
-        configs = s;
-    end
+local defaultUserSettings = deep_copy_table(user_settings);
+local config = settings.load(user_settings_container);
+gConfig = config.userSettings;
 
+function ResetSettings()
+	gConfig = deep_copy_table(defaultUserSettings);
+	UpdateSettings();
+end
+
+function UpdateSettings()
+    -- Save the current settings..
     settings.save();
-end
+end;
 
-settings.register('settings', 'settings_update', update_settings);
-
-local function draw_rect(top_left, bot_right, color, radius)
-    local color = imgui.GetColorU32(color);
-    local dimensions = {
-        { top_left[1], top_left[2] },
-        { bot_right[1], bot_right[2] }
-    };
-    imgui.GetWindowDrawList():AddRectFilled(dimensions[1], dimensions[2], color, radius, ImDrawCornerFlags_All);
-end
-
-local function GetColorOfTarget(targetEntity, targetIndex)
-    -- Obtain the entity spawn flags..
-    local flag = targetEntity.SpawnFlags;
-    local color;
-
-    -- Determine the entity type and apply the proper color
-    if (bit.band(flag, 0x0001) == 0x0001) then --players
-        color = {1,1,1,1};
-		local party = AshitaCore:GetMemoryManager():GetParty();
-		for i = 0, 17 do
-			if (party:GetMemberIsActive(i) == 1) then
-				if (party:GetMemberTargetIndex(i) == targetIndex) then
-					color = {0,1,1,1};
-					break;
-				end
-			end
-		end
-    elseif (bit.band(flag, 0x0002) == 0x0002) then --npc
-        color = {.4,1,.4,1};
-    else --mob
-		local entMgr = AshitaCore:GetMemoryManager():GetEntity();
-		local claimStatus = entMgr:GetClaimStatus(targetIndex);
-		local claimId = bit.band(claimStatus, 0xFFFF);
---		local isClaimed = (bit.band(claimStatus, 0xFFFF0000) ~= 0);
-
-		if (claimId == 0) then
-			color = {1,1,.4,1};
-		else
-			color = {1,.4,1,1};
-			local party = AshitaCore:GetMemoryManager():GetParty();
-			for i = 0, 17 do
-				if (party:GetMemberIsActive(i) == 1) then
-					if (party:GetMemberServerId(i) == claimId) then
-						color = {1,.4,.4,1};
-						break;
-					end;
-				end
-			end
-		end
-	end
-	return color;
-end
-
-local function GetIsMob(targetEntity)
-    -- Obtain the entity spawn flags..
-    local flag = targetEntity.SpawnFlags;
-    -- Determine the entity type
-	local isMob;
-    if (bit.band(flag, 0x0001) == 0x0001 or bit.band(flag, 0x0002) == 0x0002) then --players and npcs
-        isMob = false;
-    else --mob
-		isMob = true;
+settings.register('settings', 'settings_update', function (s)
+    if (s ~= nil) then
+        config = s;
+		gConfig = config.userSettings;
+		UpdateSettings();
     end
-	return isMob;
-end
-
---[[
-* event: d3d_present
-* desc : Event called when the Direct3D device is presenting a scene.
---]]
-ashita.events.register('d3d_present', 'present_cb', function ()
-    -- Obtain the player entity..
-    local playerEnt = GetPlayerEntity();
-	local player = AshitaCore:GetMemoryManager():GetPlayer();
-    if (playerEnt == nil or player == nil) then
-        return;
-    end
-	local currJob = player:GetMainJob();
-    if (player.isZoning or currJob == 0) then        
-        return;
-	end
-
-    -- Obtain the player target entity (account for subtarget)
-	local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
-	local targetIndex;
-	local targetEntity;
-	if (playerTarget ~= nil) then
-		if (playerTarget:GetIsSubTargetActive() > 0) then
-			targetIndex = playerTarget:GetTargetIndex(0);
-		else
-			targetIndex = playerTarget:GetTargetIndex(0);
-		end
-		targetEntity = GetEntity(targetIndex);
-	end
-    if (targetEntity == nil or targetEntity.Name == nil) then
-        return;
-    end
-
-	local color = GetColorOfTarget(targetEntity, targetIndex);
-	local showTargetId = GetIsMob(targetEntity);
-
-    imgui.SetNextWindowSize({ config.barWidth, -1, }, ImGuiCond_Always);
-	
-	-- Draw the main target window
-    if (imgui.Begin('TargetInfo', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
-		imgui.SetWindowFontScale(config.textScale);
-        -- Obtain and prepare target information..
-        local dist  = ('%.1f'):fmt(math.sqrt(targetEntity.Distance));
-        local x, _  = imgui.CalcTextSize(dist);
-		local targetNameText = targetEntity.Name;
-		if (showTargetId) then
-			targetNameText = targetNameText.." ["..targetIndex.."]";
-		end
-		local y, _  = imgui.CalcTextSize(targetNameText);
-
-		local winX, winY = imgui.GetWindowPos();
-		draw_rect({winX + cornerOffset , winY + cornerOffset}, {winX + y + nameXOffset, winY + nameYOffset}, {0,0,0,bgAlpha}, bgRadius, ImDrawCornerFlags_All);
-
-        -- Display the targets information..
-        imgui.TextColored(color, targetNameText);
-        imgui.SameLine();
-        imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetColumnWidth() - x - imgui.GetStyle().FramePadding.x);
-        imgui.Text(dist);
-
-		if (config.showBarPercent == true) then
-			imgui.ProgressBar(targetEntity.HPPercent / 100, { -1, config.barHeight});
-		else
-			imgui.ProgressBar(targetEntity.HPPercent / 100, { -1, config.barHeight}, '');
-		end
-		
-    end
-	local winPosX, winPosY = imgui.GetWindowPos();
-    imgui.End();
-	
-	
-	-- Obtain our target of target (not always accurate)
-	local totEntity;
-	local totIndex
-	if (targetEntity == playerEnt) then
-		totIndex = targetIndex
-		totEntity = targetEntity;
-	end
-	if (totEntity == nil) then
-		totIndex = targetEntity.TargetedIndex;
-		if (totIndex ~= nil) then
-			totEntity = GetEntity(totIndex);
-		end
-	end
-	if (totEntity == nil) then
-		return;
-	end;
-	local targetNameText = totEntity.Name;
-	if (targetNameText == nil) then
-		return;
-	end;
-	
-	local totColor = GetColorOfTarget(totEntity, totIndex);
-	imgui.SetNextWindowPos({winPosX + config.barWidth, winPosY + config.totBarOffset});
-    imgui.SetNextWindowSize({ config.barWidth / 3, -1, }, ImGuiCond_Always);
-	
-	if (imgui.Begin('TargetOfTargetInfo', true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground))) then
-        -- Obtain and prepare target information.
-		imgui.SetWindowFontScale(config.textScale);
-		
-		local w, _  = imgui.CalcTextSize(targetNameText);
-
-		local totwinX, totwinY = imgui.GetWindowPos();
-		draw_rect({totwinX + cornerOffset, totwinY + cornerOffset}, {totwinX + w + nameXOffset, totwinY + nameYOffset}, {0,0,0,bgAlpha}, bgRadius);
-
-		-- Display the targets information..
-		imgui.TextColored(totColor, targetNameText);
-		imgui.ProgressBar(totEntity.HPPercent / 100, { -1, config.totBarHeight }, '');
-    end
-    imgui.End();
 end);
 
-ashita.events.register('command', 'command_cb', function (ee)
-    -- Parse the command arguments
-    local args = ee.command:args();
-    if (#args == 0 or args[1] ~= '/targetinfo') then
-        return;
+-- Get if we are logged in right when the addon loads
+bLoggedIn = false;
+local playerIndex = AshitaCore:GetMemoryManager():GetParty():GetMemberTargetIndex(0);
+if playerIndex ~= 0 then
+    local entity = AshitaCore:GetMemoryManager():GetEntity();
+    local flags = entity:GetRenderFlags0(playerIndex);
+    if (bit.band(flags, 0x200) == 0x200) and (bit.band(flags, 0x4000) == 0) then
+        bLoggedIn = true;
+	end
+end
+
+--Thanks to Velyn for the event system and interface hidden signatures!
+local pGameMenu = ashita.memory.find('FFXiMain.dll', 0, "8B480C85C974??8B510885D274??3B05", 16, 0);
+local pEventSystem = ashita.memory.find('FFXiMain.dll', 0, "A0????????84C0741AA1????????85C0741166A1????????663B05????????0F94C0C3", 0, 0);
+local pInterfaceHidden = ashita.memory.find('FFXiMain.dll', 0, "8B4424046A016A0050B9????????E8????????F6D81BC040C3", 0, 0);
+
+local function GetMenuName()
+    local subPointer = ashita.memory.read_uint32(pGameMenu);
+    local subValue = ashita.memory.read_uint32(subPointer);
+    if (subValue == 0) then
+        return '';
+    end
+    local menuHeader = ashita.memory.read_uint32(subValue + 4);
+    local menuName = ashita.memory.read_string(menuHeader + 0x46, 16);
+    return string.gsub(menuName, '\x00', '');
+end
+
+local function GetEventSystemActive()
+    if (pEventSystem == 0) then
+        return false;
+    end
+    local ptr = ashita.memory.read_uint32(pEventSystem + 1);
+    if (ptr == 0) then
+        return false;
     end
 
-    -- Block all targetinfo related commands
-    ee.blocked = true;
+    return (ashita.memory.read_uint8(ptr) == 1);
 
-	-- redirect to config file for the time being
-    print('TargetInfo: Please check the config file for available options such as barLength, barHeight, etc.');
-    return;
+end
+
+local function GetInterfaceHidden()
+    if (pEventSystem == 0) then
+        return false;
+    end
+    local ptr = ashita.memory.read_uint32(pInterfaceHidden + 10);
+    if (ptr == 0) then
+        return false;
+    end
+
+    return (ashita.memory.read_uint8(ptr + 0xB4) == 1);
+end
+
+function GetHidden()
+
+	if (GetEventSystemActive()) then
+		return true;
+	end
+
+	if (string.match(GetMenuName(), 'map')) then
+		return true;
+	end
+
+    if (GetInterfaceHidden()) then
+        return true;
+    end
+
+	if (bLoggedIn == false) then
+		return true;
+	end
+    
+    return false;
+end
+
+-- Track our packets
+ashita.events.register('packet_in', 'packet_in_cb', function (e)
+	if (e.id == 0x0028) then
+		local actionPacket = ParseActionPacket(e);
+		
+		if actionPacket then
+			engaged.HandleActionPacket(actionPacket);
+			debuffs.HandleActionPacket(actionPacket);
+		end
+	elseif (e.id == 0x00E) then
+		local mobUpdatePacket = ParseMobUpdatePacket(e);
+		if mobUpdatePacket then
+			engaged.HandleMobUpdatePacket(mobUpdatePacket);
+		end
+	elseif (e.id == 0x00A) then
+		engaged.HandleZonePacket(e);
+		debuffs.HandleZonePacket(e);
+		bLoggedIn = true;
+	elseif (e.id == 0x0029) then
+		local messagePacket = ParseMessagePacket(e.data);
+		if (messagePacket) then
+			debuffs.HandleMessagePacket(messagePacket);
+		end
+	elseif (e.id == 0x00B) then
+		bLoggedIn = false;
+	elseif (e.id == 0x076) then
+		statusHandler.ReadPartyBuffsFromPacket(e);
+	end
 end);
