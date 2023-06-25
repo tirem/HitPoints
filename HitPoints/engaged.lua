@@ -8,7 +8,13 @@ local bgAlpha = 0.4;
 local bgRadius = 3;
 local engaged = {};
 
-	-- settings for enemy list
+local debugBuffIds = T{};
+for i = 1, 32 do
+	local buff = nil
+	table.insert(debugBuffIds, math.random(1, 631))
+end
+
+-- settings for enemy list
 local defaultEngagedSettings = 
 T{
 	barWidth = 125;
@@ -29,7 +35,7 @@ engaged.UpdateSettings = function(userSettings)
 	engagedSettings = deep_copy_table(defaultEngagedSettings);
 	engagedSettings.barWidth = round(defaultEngagedSettings.barWidth * userSettings.enemyListScaleX);
 	engagedSettings.barHeight = round(defaultEngagedSettings.barHeight * userSettings.enemyListScaleY);
-	engagedSettings.textScale = round(defaultEngagedSettings.textScale * userSettings.enemyListFontScale);
+	engagedSettings.textScale = defaultEngagedSettings.textScale * userSettings.enemyListFontScale;
 	engagedSettings.iconSize = round(defaultEngagedSettings.iconSize * userSettings.enemyListIconScale);
 end
 
@@ -121,11 +127,14 @@ engaged.DrawWindow = function()
 
 					-- Draw buffs and debuffs
 					local buffIds = gStatusLib.GetStatusIdsByIndex(k);
+					if (gShowConfig[1]) then
+						buffIds = debugBuffIds;
+					end
 					if (buffIds ~= nil and #buffIds > 0) then
 						imgui.SetNextWindowPos({winStartX + engagedSettings.barWidth + engagedSettings.debuffOffsetX, winY + engagedSettings.debuffOffsetY});
 						if (imgui.Begin('HitPoints - EngagedStatus'..k, true, bit.bor(ImGuiWindowFlags_NoDecoration, ImGuiWindowFlags_AlwaysAutoResize, ImGuiWindowFlags_NoFocusOnAppearing, ImGuiWindowFlags_NoNav, ImGuiWindowFlags_NoBackground, ImGuiWindowFlags_NoSavedSettings))) then
 							imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 1});
-							DrawStatusIcons(buffIds, engagedSettings.iconSize, engagedSettings.maxIcons, 1);
+							DrawStatusIcons(buffIds, engagedSettings.iconSize, gConfig.enemyListMaxIcons, 1);
 							imgui.PopStyleVar(1);
 						end 
 						imgui.End();
@@ -136,7 +145,7 @@ engaged.DrawWindow = function()
 					imgui.SameLine();
 					imgui.SetCursorPosX(imgui.GetCursorPosX() - 3);
 					-- imgui.ProgressBar(ent.HPPercent / 100, { -1, settings.barHeight}, '');
-					progressbar.ProgressBar({{ent.HPPercent / 100, {'#e16c6c', '#fb9494'}}}, {-1, engagedSettings.barHeight}, {decorate = gConfig.bShowBookends});
+					progressbar.ProgressBar({{ent.HPPercent / 100, {'#e16c6c', '#fb9494'}}}, {-1, engagedSettings.barHeight}, {decorate = gConfig.showBookends});
 					imgui.SameLine();
 
 					imgui.Separator();

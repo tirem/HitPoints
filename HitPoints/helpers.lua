@@ -397,8 +397,8 @@ function IsMemberOfParty(targetIndex)
 	return false;
 end
 
-function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffset)
-	if (statusIds ~= nil and #statusIds > 0) then
+function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, xOffset)
+	if (statusIds ~= nil and #statusIds > 0 and maxColumns > 0) then
 		local currentRow = 1;
         local currentColumn = 0;
         if (xOffset ~= nil) then

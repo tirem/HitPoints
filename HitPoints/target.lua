@@ -2,21 +2,22 @@ require('common');
 require('helpers');
 local imgui = require('imgui');
 local progressbar = require('libs/progressbar');
-local fonts = require('fonts');
 local ffi = require("ffi");
+local texts = require('libs/gdifonts/include');
 
--- TODO: Calculate these instead of manually setting them
+local debugBuffIds = T{};
+for i = 1, 32 do
+	local buff = nil
+	table.insert(debugBuffIds, math.random(1, 631))
+end
 
-local bgAlpha = 0.4;
-local bgRadius = 3;
-
-	-- settings for the targetbar
+-- settings for the targetbar
 local defaultTargetSettings =
 T{
 	-- Damage interpolation
-	hitInterpolationDecayPercentPerSecond = 150,
-	hitDelayDuration = 0.5,
-	hitFlashDuration = 0.4,
+	hitInterpolationDecayPercentPerSecond = 200,
+	hitDelayDuration = 0.3,
+	hitFlashDuration = 0.3,
 
 	-- Everything else
 	barWidth = 500,
@@ -27,77 +28,83 @@ T{
 	cornerOffset = 5,
 	nameXOffset = 12,
 	nameYOffset = 9,
-	iconSize = 22,
+	iconSize = 26,
 	arrowSize = 30,
-	maxIconColumns = 12,
-	topTextYOffset = 0,
-	topTextXOffset = 5,
-	bottomTextYOffset = -3,
-	bottomTextXOffset = 15,
+	nameTextYOffset = 3,
+	nameTextXOffset = 3,
+	percentTextXOffset = 15,
+	distTextXOffset = -3,
 	name_font_settings = 
-	T{
-		visible = true,
-		locked = true,
+	{
+		box_height = 0,
+		box_width = 0,
+		font_alignment = texts.Alignment.Left;
+		font_color = 0xFFFFFFFF,
 		font_family = 'Consolas',
-		font_height = 13,
-		color = 0xFFFFFFFF,
-		bold = true,
-		color_outline = 0xFF000000,
-		draw_flags = 0x10,
-		background = 
-		T{
-			visible = false,
-		},
-		right_justified = false;
+		font_flags = texts.FontFlags.Bold,
+		font_height = 17,
+		gradient_color = 0x00000000,
+		gradient_style = 0,
+		outline_color = 0xFF000000,
+		outline_width = 3,
+	
+		position_x = 0,
+		position_y = 0,
+		text = '',
 	};
 	totName_font_settings = 
-	T{
-		visible = true,
-		locked = true,
+	{
+		box_height = 0,
+		box_width = 0,
+		font_alignment = texts.Alignment.Left;
+		font_color = 0xFFFFFFFF,
 		font_family = 'Consolas',
-		font_height = 12,
-		color = 0xFFFFFFFF,
-		bold = true,
-		color_outline = 0xFF000000,
-		draw_flags = 0x10,
-		background = 
-		T{
-			visible = false,
-		},
-		right_justified = false;
+		font_flags = texts.FontFlags.Bold,
+		font_height = 16,
+		gradient_color = 0x00000000,
+		gradient_style = 0,
+		outline_color = 0xFF000000,
+		outline_width = 3,
+	
+		position_x = 0,
+		position_y = 0,
+		text = '',
 	};
 	distance_font_settings = 
-	T{
-		visible = true,
-		locked = true,
+	{
+		box_height = 0,
+		box_width = 0,
+		font_alignment = texts.Alignment.Right;
+		font_color = 0xFFFFFFFF,
 		font_family = 'Consolas',
-		font_height = 11,
-		color = 0xFFFFFFFF,
-		bold = true,
-		color_outline = 0xFF000000,
-		draw_flags = 0x10,
-		background = 
-		T{
-			visible = false,
-		},
-		right_justified = true;
+		font_flags = texts.FontFlags.Bold,
+		font_height = 15,
+		gradient_color = 0x00000000,
+		gradient_style = 0,
+		outline_color = 0xFF000000,
+		outline_width = 3,
+	
+		position_x = 0,
+		position_y = 0,
+		text = '',
 	};
 	percent_font_settings = 
-	T{
-		visible = true,
-		locked = true,
+	{
+		box_height = 0,
+		box_width = 0,
+		font_alignment = texts.Alignment.Right;
+		font_color = 0xFFFFFFFF,
 		font_family = 'Consolas',
-		font_height = 11,
-		color = 0xFFFFFFFF,
-		bold = true,
-		italic = true;
-		color_outline = 0xFF000000,
-		draw_flags = 0x10,
-		background = 
-		T{
-			visible = false,
-		},
-		right_justified = true;
+		font_flags = texts.FontFlags.Bold,
+		font_height = 15,
+		gradient_color = 0x00000000,
+		gradient_style = 0,
+		outline_color = 0xFF000000,
+		outline_width = 3,
+	
+		position_x = 0,
+		position_y = 0,
+		text = '',
 	};
 };
 
@@ -115,10 +122,10 @@ local target = {
 };
 
 target.UpdateTextVisibility = function(visible)
-	percentText:SetVisible(visible);
-	nameText:SetVisible(visible);
-	totNameText:SetVisible(visible);
-	distText:SetVisible(visible);
+	percentText:set_visible(visible);
+	nameText:set_visible(visible);
+	totNameText:set_visible(visible);
+	distText:set_visible(visible);
 end
 
 local _HXUI_DEV_DEBUG_INTERPOLATION = false;
@@ -127,19 +134,19 @@ local _HXUI_DEV_DEBUG_HP_PERCENT_PERSISTENT = 100;
 local _HXUI_DEV_DAMAGE_SET_TIMES = {};
 
 target.Initialize = function(settings)
-    percentText = fonts.new(settings.percent_font_settings);
-	nameText = fonts.new(settings.name_font_settings);
-	totNameText = fonts.new(settings.totName_font_settings);
-	distText = fonts.new(settings.distance_font_settings);
+    percentText = texts:create_object(settings.percent_font_settings, false);
+	nameText = texts:create_object(settings.name_font_settings, false);
+	totNameText = texts:create_object(settings.totName_font_settings, false);
+	distText = texts:create_object(settings.distance_font_settings, false);
 	arrowTexture = 	LoadTexture("arrow");
 	initialized = true;
 end
 
 target.UpdateFonts = function(settings)
-    percentText:SetFontHeight(settings.percent_font_settings.font_height);
-	nameText:SetFontHeight(settings.name_font_settings.font_height);
-	distText:SetFontHeight(settings.distance_font_settings.font_height);
-	totNameText:SetFontHeight(settings.totName_font_settings.font_height);
+    percentText:set_font_height(settings.percent_font_settings.font_height);
+	nameText:set_font_height(settings.name_font_settings.font_height);
+	distText:set_font_height(settings.distance_font_settings.font_height);
+	totNameText:set_font_height(settings.totName_font_settings.font_height);
 end
 
 target.UpdateSettings = function(userSettings)
@@ -172,13 +179,12 @@ target.DrawWindow = function(settings)
     end
 
     -- Obtain the player target entity (account for subtarget)
-	local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
-	local targetIndex;
-	local targetEntity;
-	if (playerTarget ~= nil) then
-		targetIndex, _ = statusHelpers.GetTargets();
-		targetEntity = GetEntity(targetIndex);
+	local targetIndex, _ = statusHelpers.GetTargets();
+	if (gShowConfig[1]) then
+		targetIndex = AshitaCore:GetMemoryManager():GetParty():GetMemberTargetIndex(0);
 	end
+	local targetEntity = GetEntity(targetIndex);
+
     if (targetEntity == nil or targetEntity.Name == nil) then
 		target.UpdateTextVisibility(false);
 
@@ -313,7 +319,7 @@ target.DrawWindow = function(settings)
 		local targetNameText = targetEntity.Name;
 		local targetHpPercent = targetEntity.HPPercent..'%';
 
-		if (gConfig.showEnemyId and isMonster) then
+		if (gConfig.showEnemyId and (isMonster or gShowConfig[1])) then
 			local targetServerId = AshitaCore:GetMemoryManager():GetEntity():GetServerId(targetIndex);
 			local targetServerIdHex = string.format('0x%X', targetServerId);
 
@@ -352,41 +358,38 @@ target.DrawWindow = function(settings)
 		local startX, startY = imgui.GetCursorScreenPos();
 		progressbar.ProgressBar(hpPercentData, {targetSettings.barWidth, targetSettings.barHeight}, {decorate = gConfig.showBookends});
 
-		local nameSize = SIZE.new();
-		nameText:GetTextSize(nameSize);
+		nameText:set_position_x(startX + targetSettings.nameTextXOffset);
+		nameText:set_position_y(startY - targetSettings.nameTextYOffset - targetSettings.name_font_settings.font_height);
+		nameText:set_font_color(color);
+		nameText:set_text(targetNameText);
+		nameText:set_visible(true);
 
-		nameText:SetPositionX(startX + targetSettings.barHeight / 2 + targetSettings.topTextXOffset);
-		nameText:SetPositionY(startY - targetSettings.topTextYOffset - nameSize.cy);
-		nameText:SetColor(color);
-		nameText:SetText(targetNameText);
-		nameText:SetVisible(true);
-
-		local distSize = SIZE.new();
-		distText:GetTextSize(distSize);
-
-		distText:SetPositionX(startX + targetSettings.barWidth - targetSettings.barHeight / 2 - targetSettings.topTextXOffset);
-		distText:SetPositionY(startY - targetSettings.topTextYOffset - distSize.cy);
-		distText:SetText(tostring(dist));
-		distText:SetVisible(true);
+		distText:set_position_x(startX + targetSettings.distTextXOffset);
+		distText:set_position_y(startY - targetSettings.name_font_settings.font_height / 2 + targetSettings.barHeight / 2);
+		distText:set_text(tostring(dist));
+		distText:set_visible(true);
 
 		if (isMonster or gConfig.alwaysShowHealthPercent) then
-			percentText:SetPositionX(startX + targetSettings.barWidth - targetSettings.barHeight / 2 - targetSettings.bottomTextXOffset);
-			percentText:SetPositionY(startY + targetSettings.barHeight + targetSettings.bottomTextYOffset);
-			percentText:SetText(tostring(targetHpPercent));
-			percentText:SetVisible(true);
+			percentText:set_position_x(startX + targetSettings.barWidth - targetSettings.percentTextXOffset);
+			percentText:set_position_y(startY - targetSettings.distance_font_settings.font_height);
+			percentText:set_text(tostring(targetHpPercent));
+			percentText:set_visible(true);
 			local hpColor, _ = GetHpColors(targetEntity.HPPercent / 100);
-			percentText:SetColor(hpColor);
+			percentText:set_font_color(hpColor);
 		else
-			percentText:SetVisible(false);
+			percentText:set_visible(false);
 		end
 
 		-- Draw buffs and debuffs
 		imgui.SameLine();
 		local preBuffX, preBuffY = imgui.GetCursorScreenPos();
 		local buffIds = gStatusLib.GetStatusIdsByIndex(targetIndex);
+		if (gShowConfig[1]) then
+			buffIds = debugBuffIds;
+		end
 		imgui.NewLine();
 		imgui.PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 3});
-		DrawStatusIcons(buffIds, targetSettings.iconSize, targetSettings.maxIconColumns, 3, false, targetSettings.barHeight/2);
+		DrawStatusIcons(buffIds, targetSettings.iconSize, gConfig.targetBarNumStatusPerRow, 5, targetSettings.barHeight/2);
 		imgui.PopStyleVar(1);
 
 		-- Obtain our target of target (not always accurate)
@@ -417,16 +420,13 @@ target.DrawWindow = function(settings)
 			local totStartX, totStartY = imgui.GetCursorScreenPos();
 			progressbar.ProgressBar({{totEntity.HPPercent / 100, {'#e16c6c', '#fb9494'}}}, {targetSettings.barWidth / 3, targetSettings.totBarHeight}, {decorate = gConfig.showBookends});
 
-			local totNameSize = SIZE.new();
-			totNameText:GetTextSize(totNameSize);
-
-			totNameText:SetPositionX(totStartX + targetSettings.barHeight / 2);
-			totNameText:SetPositionY(totStartY - totNameSize.cy);
-			totNameText:SetColor(totColor);
-			totNameText:SetText(totEntity.Name);
-			totNameText:SetVisible(true);
+			totNameText:set_position_x(totStartX + targetSettings.nameTextXOffset);
+			totNameText:set_position_y(totStartY - targetSettings.totName_font_settings.font_height);
+			totNameText:set_font_color(totColor);
+			totNameText:set_text(totEntity.Name);
+			totNameText:set_visible(true);
 		else
-			totNameText:SetVisible(false);
+			totNameText:set_visible(false);
 		end
     end
     imgui.End();
@@ -444,5 +444,9 @@ ashita.events.register('d3d_present', 'present_cb_target', function ()
 		target.UpdateTextVisibility(false);
 	end
 end);
+
+ashita.events.register('unload', 'unload_cb_target', function ()
+    texts:destroy_interface();
+end)
 
 return target;

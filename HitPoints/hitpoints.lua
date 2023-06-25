@@ -57,6 +57,7 @@ T{
 	targetBarIconScale = 1,
 	showEnemyId = false;
 	alwaysShowHealthPercent = false,
+	targetBarNumStatusPerRow = 16,
 
 	showEnemyList = true,
 	enemyListScaleX = 1,
@@ -64,6 +65,7 @@ T{
 	enemyListFontScale = 1,
 	enemyListIconScale = 1,
 	enemyListMaxEntries = 8,
+	enemyListMaxIcons = 7,
 
 	healthBarFlashEnabled = true,
 };
@@ -186,11 +188,21 @@ local function DrawConfig()
                 gConfig.targetBarIconScale = iconScale[1];
                 UpdateSettings();
             end
+			local numToShow = { gConfig.targetBarNumStatusPerRow };
+			if (imgui.SliderInt('Icons Per Row', numToShow, 0, 32)) then
+                gConfig.targetBarNumStatusPerRow = numToShow[1];
+                UpdateSettings();
+            end
 			imgui.EndTabItem();
         end
         if (imgui.BeginTabItem("Engaged")) then
             if (imgui.Checkbox('Enabled', { gConfig.showEnemyList })) then
                 gConfig.showEnemyList = not gConfig.showEnemyList;
+                UpdateSettings();
+            end
+			local maxEnemies = { gConfig.enemyListMaxEntries };
+			if (imgui.SliderInt('Max Enemies', maxEnemies, 1, 20)) then
+                gConfig.enemyListMaxEntries = maxEnemies[1];
                 UpdateSettings();
             end
             local scaleX = { gConfig.enemyListScaleX };
@@ -211,6 +223,11 @@ local function DrawConfig()
             local iconScale = { gConfig.enemyListIconScale };
             if (imgui.SliderFloat('Icon Scale', iconScale, 0.1, 3.0, '%.1f')) then
                 gConfig.enemyListIconScale = iconScale[1];
+                UpdateSettings();
+            end
+			local numIcons = { gConfig.enemyListMaxIcons };
+			if (imgui.SliderInt('Max Icons', numIcons, 0, 32)) then
+                gConfig.enemyListMaxIcons = numIcons[1];
                 UpdateSettings();
             end
 			imgui.EndTabItem();
