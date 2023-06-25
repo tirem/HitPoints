@@ -4,8 +4,6 @@ local ffi       = require('ffi');
 local d3d       = require('d3d8');
 local C         = ffi.C;
 local d3d8dev   = d3d.get_device();
-local statusHandler = require('statushandler');
-local buffTable = require('bufftable');
 
 function draw_rect(top_left, bot_right, color, radius, fill)
     local color = imgui.GetColorU32(color);
@@ -28,6 +26,56 @@ function draw_circle(center, radius, color, segments, fill)
 	else
 		imgui.GetWindowDrawList():AddCircle(center, radius, color, segments, 1);
 	end
+end
+
+function getTargetGradient(targetEntity, targetIndex)
+    local color = HXUI_COL_WHITE;
+
+    if targetIndex == nil then
+        return color;
+    end
+
+    -- Players
+    if (bit.band(targetEntity.SpawnFlags, 0x0001) == 0x0001) then
+        local party = AshitaCore:GetMemoryManager():GetParty();
+
+		for i = 0, 17 do
+			if party:GetMemberIsActive(i) == 1 then
+				if party:GetMemberTargetIndex(i) == targetIndex then
+					color = HXUI_COL_BLUE;
+
+					break;
+				end
+			end
+		end
+    elseif bit.band(targetEntity.SpawnFlags, 0x0002) == 0x0002 then -- NPCs
+        color = HXUI_COL_GREEN;
+    else -- Mobs
+        local entMgr = AshitaCore:GetMemoryManager():GetEntity();
+		local claimStatus = entMgr:GetClaimStatus(targetIndex);
+		local claimId = bit.band(claimStatus, 0xFFFF);
+
+		if (claimId == 0) then
+			color = HXUI_COL_YELLOW;
+		else
+            -- Claimed by anotehr pt
+			color = HXUI_COL_PURPLE;
+
+			local party = AshitaCore:GetMemoryManager():GetParty();
+
+			for i = 0, 17 do
+				if party:GetMemberIsActive(i) == 1 then
+					if party:GetMemberServerId(i) == claimId then
+						color = HXUI_COL_RED;
+
+						break;
+					end;
+				end
+			end
+		end
+    end
+
+    return color;
 end
 
 function GetColorOfTarget(targetEntity, targetIndex)
@@ -356,31 +404,18 @@ function DrawStatusIcons(statusIds, iconSize, maxColumns, maxRows, drawBg, xOffs
         if (xOffset ~= nil) then
             imgui.SetCursorPosX(imgui.GetCursorPosX() + xOffset);
         end
+
 		for i = 0,#statusIds do
             -- Don't check anymore after -1, as it will be all -1's
             if (statusIds == -1) then
                 break;
             end
-            local icon = statusHandler.get_icon_from_theme(gConfig.statusIconTheme, statusIds[i]);
+            local icon = gStatusLib.GetIconForStatusId(statusIds[i], gConfig.statusIconTheme);
+
             if (icon ~= nil) then
-                if (drawBg == true) then
-                    local resetX, resetY = imgui.GetCursorScreenPos();
-                    local bgIcon;
-                    local isBuff = buffTable.IsBuff(statusIds[i]);
-                    local bgSize = iconSize * 1.1;
-                    local yOffset = bgSize * -0.1;
-                    if (isBuff) then
-                        yOffset = bgSize * -0.3;
-                    end
-                    imgui.SetCursorScreenPos({resetX - ((bgSize - iconSize) / 1.5), resetY + yOffset});
-                    bgIcon = statusHandler.GetBackground(isBuff);
-                    imgui.Image(bgIcon, { bgSize + 1, bgSize  / .75});
-                    imgui.SameLine();
-                    imgui.SetCursorScreenPos({resetX, resetY});
-                end
                 imgui.Image(icon, { iconSize, iconSize }, { 0, 0 }, { 1, 1 });
                 if (imgui.IsItemHovered()) then
-                    statusHandler.render_tooltip(statusIds[i]);
+                    RenderTooltip(statusIds[i], gStatusLib.GetTooptipForStatusId(statusIds[i]));
                 end
                 currentColumn = currentColumn + 1;
                 -- Handle multiple rows
@@ -419,26 +454,6 @@ function GetSubTargetActive()
         return false;
     end
     return playerTarget:GetIsSubTargetActive() == 1 or (GetStPartyIndex() ~= nil and playerTarget:GetTargetIndex(0) ~= 0);
-end
-
-function GetTargets()
-    local playerTarget = AshitaCore:GetMemoryManager():GetTarget();
-    local party = AshitaCore:GetMemoryManager():GetParty();
-
-    if (playerTarget == nil or party == nil) then
-        return nil, nil;
-    end
-
-    local mainTarget = playerTarget:GetTargetIndex(0);
-    local secondaryTarget = playerTarget:GetTargetIndex(1);
-    local partyTarget = GetStPartyIndex();
-
-    if (partyTarget ~= nil) then
-        secondaryTarget = mainTarget;
-        mainTarget = party:GetMemberTargetIndex(partyTarget);
-    end
-
-    return mainTarget, secondaryTarget;
 end
 
 function GetJobStr(jobIdx)
@@ -484,4 +499,23 @@ function GetHpColors(hpPercent)
     end
 
     return hpNameColor, hpGradient;
+end
+
+function round(num)
+    return math.floor(num + 0.5);
+end
+
+-- render the tooltip for a specific status id
+function RenderTooltip(id, tooltip)
+    if (id == nil or id < 1 or id > 0x3FF or id == 255) then
+        return;
+    end
+    if (tooltip.name ~= nil) then
+        imgui.BeginTooltip();
+            imgui.Text(('%s (#%d)'):fmt(tooltip.name, id));
+            if (tooltip.description ~= nil) then
+                imgui.Text(tooltip.description);
+            end
+        imgui.EndTooltip();
+    end
 end

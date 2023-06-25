@@ -1,3 +1,6 @@
 [submodule "HitPoints/libs/status"]
 	path = HitPoints/libs/status
 	url = https://github.com/tirem/statuslib
+[submodule "HitPoints/libs/gdifonts"]
+	path = HitPoints/libs/gdifonts
+	url = https://github.com/ThornyFFXI/gdifonts
