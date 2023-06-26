@@ -17,6 +17,8 @@ Hovering over any status icon will popup a help text explaining the buff or debu
 
 **NOTE:** Buffs, debuffs, and target of target are all approximations based on packets and available data. Accuracy may vary.
 
+**NOTE:** If you are familiar with one of my other addons `HXUI` you will notice some strong similarities. I re-used a chunk of the code when putting this together at first, but HXUI is based on imgui which caused lots of issues. This addon will slowly be moving away from imgui and instead use a sprite based renderer in future updates, as well as including some functionality that may or may not be approved for use on the Horizon server as I primarily play retail.
+
 ![Screenshot](https://user-images.githubusercontent.com/7691562/248598451-a3f9a6b7-3302-4bf2-becd-e94dd388bc77.png)
 
 
