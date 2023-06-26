@@ -27,7 +27,7 @@
 
 addon.name      = 'HitPoints';
 addon.author    = 'Tirem';
-addon.version   = '2.0';
+addon.version   = '2.1';
 addon.desc      = 'Displays information bars about the target and engaged enemies.';
 addon.link      = 'https://github.com/tirem/hitpoints'
 
