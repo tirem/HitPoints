@@ -21,13 +21,14 @@ Hovering over any status icon will popup a help text explaining the buff or debu
 
 
 ## Installation
-* Download the latest release of HitPoints from the panel on the right and extract it
-* Open up the extracted folder and inside of it will be a directory called `HitPoints`.
-* Copy the HitPoints directory to your Ashita addons folder, located at `Ashita/addons`.
+* Download the latest release of HitPoints from the panel on the right and extract it.
+* Open up the extracted folder and inside of it will be a directory called `addons`.
+* Copy the addons folder to your `Ashita` folder, merging it with your current `Ashita/addons` folder.
 * To load HitPoints, type `/addon load HitPoints` in your chatbox.
 * If you want to load this addon by default:
     * Open up the file `default.txt` in the `Ashita/scripts` folder.
     * Add the following line: `/addon load HitPoints`
+* **NOTE:** You must follow these steps to install the addon. Downloading the code directly will not work without source control software as this repository makes use of git submodules!
 
 ## Config
 
