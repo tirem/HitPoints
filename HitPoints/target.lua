@@ -438,7 +438,7 @@ end
 --]]
 ashita.events.register('d3d_present', 'present_cb_target', function ()
 
-	if (gConfig.showTargetBar) then
+	if (gConfig.showTargetBar and not statusHelpers.GetGameInterfaceHidden()) then
 		target.DrawWindow();
 	else
 		target.UpdateTextVisibility(false);

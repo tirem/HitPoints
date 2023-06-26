@@ -89,6 +89,9 @@ engaged.DrawWindow = function()
 
 		for k,v in pairs(engagedEnemies) do
 			local ent = GetEntity(k);
+			if (ent == nil and gShowConfig[1]) then
+				ent = GetPlayerEntity();
+			end
 			if (v ~= nil and ent ~= nil and GetIsValidMob(k)) then
 				-- Obtain and prepare target information..
 				local targetNameText = ent.Name;
@@ -167,7 +170,7 @@ end
 --]]
 ashita.events.register('d3d_present', 'present_cb_engaged', function ()
 
-	if (gConfig.showEnemyList) then
+	if gConfig.showEnemyList and not statusHelpers.GetGameInterfaceHidden() then
 		engaged.DrawWindow();
 	end
 end);

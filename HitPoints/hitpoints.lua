@@ -249,7 +249,7 @@ ashita.events.register('load', 'load_cb', function ()
 end);
 
 ashita.events.register('d3d_present', 'present_cb_hitpoints', function ()
-	if gShowConfig[1] then
+	if gShowConfig[1] and not statusHelpers.GetGameInterfaceHidden() then
 		DrawConfig();
 	end
 end);
