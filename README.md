@@ -32,3 +32,5 @@ Hovering over any status icon will popup a help text explaining the buff or debu
 ## Config
 
 To configure any settings simply type `/hitpoints`, `/hpoints`, or `/hp` into the chatbox and a config menu will pop up.
+
+All elements can be dragged around or locked in place. This location is stored in the imgui config in the `Ashita/config` directory. If elements stop rendering correctly, close your game, delete your imgui config, and reopen the game. This will reset all positions.
