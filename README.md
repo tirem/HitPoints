@@ -17,17 +17,20 @@ Hovering over any status icon will popup a help text explaining the buff or debu
 
 **NOTE:** Buffs, debuffs, and target of target are all approximations based on packets and available data. Accuracy may vary.
 
+**NOTE:** If you are familiar with one of my other addons `HXUI` you will notice some strong similarities. I re-used a chunk of the code when putting this together at first, but HXUI is based on imgui which caused lots of issues. This addon will slowly be moving away from imgui and instead use a sprite based renderer in future updates, as well as be focused primarily on use in retail, not specifically the Horizon server.
+
 ![Screenshot](https://user-images.githubusercontent.com/7691562/248598451-a3f9a6b7-3302-4bf2-becd-e94dd388bc77.png)
 
 
 ## Installation
-* Download the latest release of HitPoints from the panel on the right and extract it
-* Open up the extracted folder and inside of it will be a directory called `HitPoints`.
-* Copy the HitPoints directory to your Ashita addons folder, located at `Ashita/addons`.
+* Download the latest release of HitPoints from the panel on the right and extract it.
+* Open up the extracted folder and inside of it will be a directory called `addons`.
+* Copy the addons folder to your `Ashita` folder, merging it with your current `Ashita/addons` folder.
 * To load HitPoints, type `/addon load HitPoints` in your chatbox.
 * If you want to load this addon by default:
     * Open up the file `default.txt` in the `Ashita/scripts` folder.
     * Add the following line: `/addon load HitPoints`
+* **NOTE:** You must follow these steps to install the addon. Downloading the code directly will not work without source control software as this repository makes use of git submodules!
 
 ## Config
 
